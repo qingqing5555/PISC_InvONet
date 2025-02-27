@@ -1,7 +1,7 @@
-*****文件组成************
-Config: 参数设置
-data：速度剖面
-Functions: 一些辅助函数，加载数据的、可视化的、数学相关的，重要的我都一句句注释过
-Models：神经网络模型和正演算子以及一些网络模块
-results：生成的结果都在这里
-Trains：主要代码都在这里
+File Composition
+Configuration: Parameter settings
+Data: velocity profile
+Functions: Some auxiliary functions, including data loading, visualization, and math-related, the important ones are all commented line by line
+Models: Neural network models and forward operators as well as some network modules
+Results: The generated results are all here
+Trains: The main codes are all here
