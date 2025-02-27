@@ -1,8 +1,8 @@
-这份代码包括了openfwi下的数据驱动反演和物理驱动反演
-*************文件夹说明***************
-FWI：物理反演实验结果存储的地方
-invert_models：数据驱动实现结果存储的地方
-phy_data：物理反演试验可能用到的数据
-split_suzy：里面是存了训练数据存储路径的txt，模型加载数据时会用到
+This code includes data-driven inversion and physics-driven inversion under openfwi
+Folder Description
+FWI: The storage location for physical inversion experimental results
+invert_models: The place where the result storage is implemented data-driven
+phy_data: Physical inversion experiment data that may be used
+Split_Suzy: Inside is a txt file that stores the training data storage path, which is used when loading data for the model
 ------------------------------------------------------------------------------------------------
-想下载数据：到openfwi官方或有其它数据来源也可
+I want to download data: to the official openfwi or other data sources are also available
