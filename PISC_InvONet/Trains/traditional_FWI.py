@@ -7,79 +7,78 @@ import time
 
 """
 
-edit: suzy 20231128
-这个文件是传统反演方法的深度学习实现
+This file is a deep learning implementation of the traditional inversion method
 
 """
 
-# 检查cudnn cuda
+
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
-# ----------------------------加载数据------------------------------
-# 1 速度模型
+# ---------------------------Load data------------------------------
+# 1 Speed Model
 model_true = loadtruemodel(data_path, vmodel_dim).to(device)
 # model_true = torch.Tensor(np.load('F:/suzy/OpenFWI/FWI/SEG/model1.npy')[0][0])
 
-# 2 初始模型
+# 2 Initial Model
 init_model_path = ResultPath + str(data_name) + '_initmodel.mat'
 if os.path.exists(init_model_path):
-    print('存在已构建的初始模型，正在加载...')
+    print('There is an already built initial model, loading...')
     model = load_init_model(init_model_path).clone().to(device)
     model.requires_grad = True
-    print(' 真实模型最大波速: ', model_true.max())
-    # 把model设置为可训练的参数 这里model是初始模型的clone
+    print(' Real model maximum wave speed:', model_true.max())
+    # Set the model parameters as trainable here, where model is a clone of the initial model
     model = torch.nn.Parameter(model)
 else:
-    raise Exception('不存在初始模型数据，请构建...')
+    raise Exception('No initial model data exists, please build...')
 
-# 3 创建包含源和接收器位置的数组
+# 3 Create an array containing source and receiver positions
 x_s, x_r = createSR(num_shots, num_sources_per_shot, num_receivers_per_shot, d_source, first_source, d_receiver,
                         first_receiver, source_depth, receiver_depth, device)
 x_s, x_r = x_s.to(device), x_r.to(device)
 
-# 4 震源
+# 4 Seismic Source
 init_source_filepath = ResultPath + str(data_name) + '_initsource.mat'
 if os.path.exists(init_source_filepath):
-    print('初始震源已存在,正在加载...')
+    print('Initial source exists, loading...')
     source_amplitudes_init, source_amplitudes_true = loadinitsource(init_source_filepath)
     source_amplitudes_init.to(device)
     source_amplitudes_true.to(device)
 else:
-    raise Exception('不存在初始震源，请构建...')
+    raise Exception('No initial source exists, please construct...')
 
-# 5 地震数据
-# 如果有噪声
+# 5 Seismic data
+#If there is noise
 if AddNoise == True and noise_var != None:
     if noise_type == 'Gaussian':
         ResultPath = ResultPath + 'AWGN_var' + str(noise_var) + '/'
     noise_filepath = ResultPath + str(data_name) + '_noisercv_amps.mat'
     if os.path.exists(noise_filepath):
-        print('地震数据（noise）已存在,正在加载...')
+        print('Earthquake data (noise) already exists, loading...')
         receiver_amplitudes_true = loadrcv(noise_filepath).to(device)
     else:
-        raise Exception('不存在地震数据（noise），请构建...')
+        raise Exception('No seismic data (noise) exists, please build...')
 else:
-    # 如果无噪声
+    # If there is no noise
     rcv_filepath = ResultPath + str(data_name) + '_rcv_amps.mat'
     if os.path.exists(rcv_filepath):
-        print('地震数据（clean）已存在,正在加载...')
+        print('Earthquake data (clean) already exists, loading...')
         receiver_amplitudes_true = loadrcv(rcv_filepath).to(device)
     else:
-        raise Exception('不存在地震数据（clean），请构建...')
+        raise Exception('No seismic data (clean) exists, please build...')
 
-# --------------------------超参数-----------------------------------
-# 优化器：训练参数，步长，动量参数，数值稳定参数，L2正则化超参数
+# --------------------------Hyperparameters-----------------------------------
+# Optimizer: training parameters, step size, momentum parameters, numerical stability parameters, L2 regularization hyperparameters
 # my_model = ConvModNet_SEG()
 # optimizer = torch.optim.AdamW(model.parameters(), lr=fwi_lr, betas=(0.9, 0.999), weight_decay=1e-4)
 optimizer = optim.Adam([{'params': model, 'lr': fwi_lr, 'betas': (0.5, 0.9), 'eps': 1e-8, 'weight_decay': 0}])
 
 if fwi_weight_decay > 0:
-    # 优化器对象 多少轮循环更新一次学习率 每次更新lr的gamma倍
+    # Optimizer object, how many times to update the learning rate per cycle, each update of lr's gamma times
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=fwi_stepsize, gamma=fwi_weight_decay)
-# 损失函数选择 loss option: L1, L2, 1-D W1
+# Loss function selection loss option: L1, L2, 1-D W1
 if fwi_loss_type == 'L1':
     criterion = torch.nn.L1Loss()
 elif fwi_loss_type == 'L2':
@@ -89,7 +88,7 @@ elif fwi_loss_type == 'W1':
 else:
     raise NotImplementedError
 
-# 结果存储路径 损失函数类型-步长-batch-归一化-epoch次数
+# Result storage path - Loss function type-step-length-batch-normalization-epoch number
 fwi_result = ResultPath + 'FWI' + '_loss' + str(fwi_loss_type) + '_lr' + str(fwi_lr) + \
              '_batch' + str(fwi_batch) + '_norm' + str(data_norm) + '_epoch' + str(fwi_num_epochs)
 
@@ -123,24 +122,24 @@ def fwi_main():
 
     t_start = time.time()
     model_true = model_true.view(nz, ny)
-    # 每个batch多少shots
+    # How many shots per batch?
     num_shots_per_batch = int(num_shots / fwi_batch)
 
     for i in range(fwi_num_epochs):
-        # loss初始化
+        # loss initialization
         epoch_loss = 0.0
 
         for it in range(fwi_batch):
             iteration = i * fwi_batch + it + 1
-            optimizer.zero_grad()  # 梯度记得清零
+            optimizer.zero_grad()  
 
             # prop = deepwave.scalar.Propagator({'vp': model}, dx, pml_width, order, survey_pad)
-            batch_src_amps = source_amplitudes_init.repeat(1, num_shots_per_batch, 1).to(device)  # 每个batch相应shot的震源数据
-            batch_rcv_amps_true = rcv_amps_true[:, it::fwi_batch].to(device)  # 采样的真实地震数据
+            batch_src_amps = source_amplitudes_init.repeat(1, num_shots_per_batch, 1).to(device) 
+            batch_rcv_amps_true = rcv_amps_true[:, it::fwi_batch].to(device)  # Sampled real seismic data
 
             batch_x_s = x_s[it::fwi_batch].to(device)
             batch_x_r = x_r[it::fwi_batch].to(device)
-            # batch_rcv_amps_pred = prop(batch_src_amps, batch_x_s, batch_x_r, dt)  # 模拟波的传播
+            # batch_rcv_amps_pred = prop(batch_src_amps, batch_x_s, batch_x_r, dt)  # Simulating wave propagation
             batch_rcv_amps_pred = createdata(model, dx, dt, batch_src_amps, batch_x_s, batch_x_r,
                                              order, pml_width, peak_freq)
 
@@ -165,12 +164,12 @@ def fwi_main():
             epoch_loss += loss.item()
             loss.backward()
 
-            # 裁剪 防止梯度消失 放在backward和step之间
+          
             torch.nn.utils.clip_grad_value_(model, 1e3)
 
             optimizer.step()
 
-            # 调整张量值区间 使它始终大于0
+           
             model.data = torch.clamp(model.data, min=1e-12)
 
         if fwi_weight_decay > 0:
@@ -179,7 +178,7 @@ def fwi_main():
         print('Epoch:', i + 1, 'Loss: ', epoch_loss / fwi_batch)
         Loss = np.append(Loss, epoch_loss / fwi_batch)
 
-        # 计算真实和反演之间的差距 SNR,  SSIM ,  RE
+       
         snr = ComputeSNR(model.detach().cpu().numpy(),
                          model_true.detach().cpu().numpy())
         SNR = np.append(SNR, snr)
@@ -205,7 +204,7 @@ def fwi_main():
             PlotERROR(ERROR=ERROR, SaveFigPath=fwi_result)
 
         if (i + 1) % savepoch == 0 or (i + 1) == fwi_num_epochs:
-            # 保存model和loss
+          
             spio.savemat(fwi_result + 'FWIRec_' + str(fwi_loss_type) + '.mat',
                          {'rec': model.cpu().data.numpy()})
             spio.savemat(fwi_result + 'FWIMetric_' + str(fwi_loss_type) + '.mat',
