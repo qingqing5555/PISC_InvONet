@@ -14,14 +14,14 @@ NORM_LAYERS = {'bn': nn.BatchNorm2d, 'in': nn.InstanceNorm2d, 'ln': nn.LayerNorm
 
 def load_dict_to_model(pre_dict, model):
     """
-    迁移学习用
-    :param pre_FilePath: 预训练模型
-    :param model_path: 新模型
+    Transfer Learning
+:param pre_FilePath: Pre-trained model
+New Model Path
     :return:
     """
     # model = torch.load(model_path)
-    model_dict = model.state_dict()  # 获取model_to模型参数
-    # 过滤
+    model_dict = model.state_dict()  # Get model_to model parameters
+    # Filter
     new_dict = {k: v for k, v in pre_dict.items() if k in model_dict.keys()}
     model_dict.update(new_dict)
     print('Total : {}, update: {}'.format(len(pre_dict), len(new_dict)))
@@ -80,7 +80,7 @@ class ConvBlock(nn.Module):
         layers = [nn.Conv2d(in_channels=in_fea, out_channels=out_fea, kernel_size=kernel_size, stride=stride,
                             padding=padding)]
         # if out_fea > 1:
-        #     layers.append(ScConv(out_fea))   # 加了一个sc卷积
+        #     layers.append(ScConv(out_fea))  
         if norm in NORM_LAYERS:
             layers.append(NORM_LAYERS[norm](out_fea))
         layers.append(nn.LeakyReLU(relu_slop, inplace=True))
@@ -147,8 +147,8 @@ class ResizeBlock(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-# -------------------------------------残差模块--------------------------------------
-# 普通残差
+# -------------------------------------Residual Module--------------------------------------
+#Normal Residual
 class ResidualBlock(nn.Module):
     def __init__(self, in_fea, out_fea, kernel_size=3, stride=1, padding=1, norm='bn', use_1x1conv=False,
                  relu_slop=0.2):
@@ -159,7 +159,7 @@ class ResidualBlock(nn.Module):
                                padding=padding)
         if use_1x1conv:
             self.conv3 = nn.Conv2d(
-                in_channels=in_fea, out_channels=out_fea, kernel_size=1, stride=stride)  # 这里相当于就是残差连接了
+                in_channels=in_fea, out_channels=out_fea, kernel_size=1, stride=stride) 
         else:
             self.conv3 = None
 
@@ -169,10 +169,10 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x):
 
-        y = self.LeakyReLU(self.BN1(self.conv1(x)))  # 32 500 70  64 250 70  通道 宽高随参数变化
-        y = self.BN2(self.conv2(y))  # 通道 宽高都不变
+        y = self.LeakyReLU(self.BN1(self.conv1(x))) 
+        y = self.BN2(self.conv2(y)) 
         if self.conv3:
-            x = self.conv3(x)   # 32 500 70  64 250 70  通道 宽高随参数变化
+            x = self.conv3(x)  
         y = self.LeakyReLU(y + x)
         return y
 
@@ -188,7 +188,7 @@ class Def_ResidualBlock(nn.Module):
         self.conv2 = DeformConv2d(out_fea, out_fea, kernel_size=3)
         if use_1x1conv:
             self.conv3 = nn.Conv2d(
-                in_channels=in_fea, out_channels=out_fea, kernel_size=1, stride=stride)  # 残差连接
+                in_channels=in_fea, out_channels=out_fea, kernel_size=1, stride=stride)  #Residual connection
         else:
             self.conv3 = None
 
@@ -197,10 +197,10 @@ class Def_ResidualBlock(nn.Module):
 
     def forward(self, x):
 
-        y = self.LeakyReLU(self.BN1(self.conv1(x)))  # 16 64 250 70 -> 16 64 125 70  通道 宽高随参数变化
-        y = self.conv2(y)  # 通道 宽高都不变 16 64 125 70
+        y = self.LeakyReLU(self.BN1(self.conv1(x))) 
+        y = self.conv2(y) 
         if self.conv3:
-            x = self.conv3(x)   # 32 500 70  64 250 70  通道 宽高随参数变化
+            x = self.conv3(x)   
         y = self.LeakyReLU(y + x)
         return y
 
@@ -215,7 +215,7 @@ class Mod_ResidualBlock(nn.Module):
 
         if use_1x1conv:
             self.conv3 = nn.Conv2d(
-                in_channels=in_fea, out_channels=out_fea, kernel_size=1, stride=stride, padding=padding_Skip)  # 这里相当于就是残差连接了
+                in_channels=in_fea, out_channels=out_fea, kernel_size=1, stride=stride, padding=padding_Skip)  
         else:
             self.conv3 = None
 
@@ -224,16 +224,15 @@ class Mod_ResidualBlock(nn.Module):
         self.LeakyReLU = nn.LeakyReLU(relu_slop, inplace=True)
 
     def forward(self, x):
-        y = self.conv1_1(x)  # 128 63 70  128 34 35
+        y = self.conv1_1(x) 
         y = self.conv1_2(y)
-        y = self.conv2(y)  # 通道 宽高都不变
+        y = self.conv2(y)  
         if self.conv3:
-            x = self.conv3(x)   # 128 63 70  64 34 35  通道 宽高随参数变化
+            x = self.conv3(x)   
         y = self.LeakyReLU(y + x)
         return y
-# ----------------------------------------网络设计----------------------------------------
-# FlatFault/CurveFault
-# 1000, 70 -> 70, 70
+# ----------------------------------------Network Design----------------------------------------
+
 class InversionNet(nn.Module):
     def __init__(self, dim1=32, dim2=64, dim3=128, dim4=256, dim5=512, sample_spatial=1.0, **kwargs):
         super(InversionNet, self).__init__()
@@ -313,7 +312,7 @@ class InversionNet(nn.Module):
         x = self.deconv6(x)  # (None, 1, 70, 70)
         return x
 
-# ------------------------添加 Down_wt ConvMod
+# ------------------------Add Down_wt ConvMod
 class ConvModNet(nn.Module):
     def __init__(self, dim1=32, dim2=64, dim3=128, dim4=256, dim5=512, sample_spatial=1.0, **kwargs):
         super(ConvModNet, self).__init__()
@@ -473,7 +472,7 @@ class Df_ConvModNet(nn.Module):
         x = self.deconv6(x)  # (None, 1, 70, 70)
         return x
 
-# 自注意力
+#Self-attention
 class baseline_mod(nn.Module):
     def __init__(self, dim1=32, dim2=64, dim3=128, dim4=256, dim5=512, sample_spatial=1.0, **kwargs):
         super(baseline_mod, self).__init__()
@@ -562,7 +561,7 @@ class baseline_mod(nn.Module):
         x = self.deconv6(x)  # (None, 1, 70, 70)
         return x
 
-# 动态卷积
+# Dynamic Convolution
 class baseline_df(nn.Module):
     def __init__(self, dim1=32, dim2=64, dim3=128, dim4=256, dim5=512, sample_spatial=1.0, **kwargs):
         super(baseline_df, self).__init__()
@@ -927,16 +926,16 @@ class Discriminator(nn.Module):
         return x
 
 
-# -------------------------------------模型类型--------------------------------------
+# -------------------------------------Model Type--------------------------------------
 model_dict = {
-    'InversionNet': InversionNet,  # 24409123  baseline
+    'InversionNet': InversionNet, 
     'Discriminator': Discriminator,
-    'baseline_mod': baseline_mod,  # 17556355  添加自注意力
-    'baseline_df': baseline_df,  # 24597337 添加可变形
-    'baseline_df_mod': baseline_df_mod,  # 19597095  论文网络
-    'ConvModNet_SEG': ConvModNet_SEG,  # SEG模型的网络
+    'baseline_mod': baseline_mod, 
+    'baseline_df': baseline_df, 
+    'baseline_df_mod': baseline_df_mod, 
+    'ConvModNet_SEG': ConvModNet_SEG, 
     'ConvModNet': ConvModNet,
-    'df_mod_ONET': df_mod_ONET  # 添加参数
+    'df_mod_ONET': df_mod_ONET  
 }
 
 def plotimg(input1, vmin, vmax, input2=None, SaveFigPath=None):
