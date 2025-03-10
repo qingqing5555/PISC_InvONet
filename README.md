@@ -79,7 +79,7 @@ python GAN_train.py
 ## **Additional Features**
 
 ### **For OpenFWI:**
-- **Download Data:**  The seismic datasets are accessible as follows: CurveVel-B dataset at OpenFWI (Doi: 10.48550/arXiv.2111.02926), Simulate-SEG-Salt dataset at SEG Data Repository (Doi: 10.1190/geo2018-0249.1), and the Marmousi model at the WDC for Geophysics, Beijing (Doi: 10.1190/1.1437051).
+- **Download Data:**  The seismic datasets are accessible as follows: CurveVel-B dataset at OpenFWI [Doi: 10.48550/arXiv.2111.02926](Doi: 10.48550/arXiv.2111.02926), Simulate-SEG-Salt dataset at SEG Data Repository [Doi: 10.1190/geo2018-0249.1](Doi: 10.1190/geo2018-0249.1), and the Marmousi model at the WDC for Geophysics, Beijing [Doi: 10.1190/1.1437051](Doi: 10.1190/1.1437051).
 - **Generate Custom Data:** Use `FWI.py` to generate seismic data or `data_generate.py` from PI-InversionNet.
 - **Modify Network Architecture:** Implement custom models in `network.py`.
 
@@ -120,3 +120,6 @@ pip install -r requirements.txt
 ## **Results**
 The trained model and experimental results can be found in the `results/` directory.  
 The model outputs **seismic velocity inversion maps** and **intermediate processing results**.
+
+##**License**
+PISC_InvONet is licensed under the MIT License.
