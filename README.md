@@ -118,5 +118,5 @@ The model outputs **seismic velocity inversion maps** and **intermediate process
 
 ---
 
-##**License**
+## **License**
 PISC_InvONet is licensed under the MIT License.
