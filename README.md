@@ -68,10 +68,12 @@ python data_generate.py
 ### **3.Run Traditional Full-Waveform Inversion (FWI)**
 ```bash
 python traditional_FWI.py
+```
 
 ### **4.Train GAN-based Physics-Guided Inversion Model**Note: Adjust network hyperparameters based on different velocity profile sizes (check comments in the code).
 ```bash
 python GAN_train.py
+```
 
 ## **Additional Features**
 
