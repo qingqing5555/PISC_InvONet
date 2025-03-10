@@ -40,8 +40,8 @@ def denormalize(data, min, max, exp=True, k=1, c=0, scale=2):
 
 def shot_max_normalize(x):
     """
-    normalization  变成【-1，1】
-    通道为1
+   normalized to [-1, 1]
+Channel is 1
     """
     num_shots, channel, num_time_steps, num_receivers = x.shape
     x_max, _ = torch.max(x.detach().reshape(num_shots, channel, num_time_steps * num_receivers).abs(), dim=2,
@@ -81,10 +81,10 @@ def Wasserstein1(f, g, trans_type, theta):
 def transform(f, g, trans_type, theta):
     """
         Args:
-            f, g: 地震数据 shape： [时间,爆炸次数]
+           f, g: Seismic data shape: [Time, Explosion Times]
             trans_type: # linear, square, exp, softplus, abs
-            theta: 参数
-    """
+            theta: parameter
+        """
     assert len(f.shape) == 2
     c = 0.0
     device = f.device
@@ -119,8 +119,8 @@ def transform(f, g, trans_type, theta):
 
 def trace_sum_normalize(x):
     """
-    用每个迹的和归一化
-    通道为 1
+   Sum of traces and normalization
+Channel is 1
     """
     x = x / (x.sum(dim=0, keepdim=True) + 1e-18)
     return x
@@ -131,9 +131,9 @@ def fix_model_grad(fix_value_depth, model):
     device = model.device
     # Gradient mask
     gradient_mask = torch.zeros(model.shape).to(device)
-    # 深度以下为1，以上为0 [receiver_depth:,:] = 1; [:receiver_depth,:] = 0;
+    # Depth below 1, above 0 [receiver_depth:,:] = 1; [:receiver_depth,:] = 0;
     gradient_mask[fix_value_depth:, :] = 1.0
-    # 只更新1的部分 [receiver_depth:,:]
+    # Only update part 1 [receiver_depth:,:]
     model.register_hook(lambda grad: grad.mul_(gradient_mask))
 
 
@@ -262,7 +262,7 @@ def createlearnSNR(init_snr_guess, device):
 
 def calc_gradient_penalty(netD, real_data, fake_data, batch_size, channel, lamb, device):
     """
-        训练鉴别器的梯度惩罚项(参考WGAN_GP)
+        Training the gradient penalty term for the discriminator (refer to WGAN_GP)
     """
     if batch_size != real_data.shape[0] or channel != real_data.shape[1]:
         assert False, "The batch size or channel is wrong!!!"
