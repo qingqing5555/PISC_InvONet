@@ -53,7 +53,7 @@ class ConvMod(nn.Module):
         return x
 
 
-# 输入 N C H W,  输出 N C H W
+Input N C H W, output N C H W
 if __name__ == '__main__':
     block = ConvMod(64).cuda()
     input = torch.rand(3, 64, 63, 70).cuda()
