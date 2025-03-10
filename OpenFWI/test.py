@@ -52,7 +52,7 @@ def denormalize(data, min, max, exp=True, k=1, c=0, scale=2):
 
 def evaluate(model, criterions, dataloader, device, k, ctx,
              vis_path, vis_batch, vis_sample, missing, std):
-    model.eval()  # 将模型设置为评估模式
+    model.eval() 
 
     label_list, label_pred_list = [], []  # store denormalized predcition & gt in numpy
     label_tensor, label_pred_tensor = [], []  # store normalized prediction & gt in tensor
@@ -207,7 +207,7 @@ def main(args):
     if args.resume:
         print(args.resume)
         checkpoint = torch.load(args.resume, map_location='cpu')
-        model = network.load_dict_to_model(checkpoint['model'], model)  # 加载模型权重
+        model = network.load_dict_to_model(checkpoint['model'], model) 
         print('Loaded model checkpoint at Epoch {} / Step {}.'.format(checkpoint['epoch'], checkpoint['step']))
 
     if args.vis:
@@ -232,7 +232,7 @@ def parse_args():
     # python test.py -ds flatvel-a -n YOUR_DIRECTORY -m InversionNet -v flatvel_a_val.txt -r CHECKPOINT.PTH --vis -vb 2 -vsa 3
     parser = argparse.ArgumentParser(description='FCN Testing')
     parser.add_argument('-d', '--device', default='cuda', help='device')
-    parser.add_argument('-ds', '--dataset', default='curvevel-a', type=str, help='dataset name')  # 这里修改数据类型
+    parser.add_argument('-ds', '--dataset', default='curvevel-a', type=str, help='dataset name') 
     parser.add_argument('-fs', '--file-size', default=None, type=int, help='number of samples in each npy file')
 
     # Path related
@@ -241,11 +241,11 @@ def parse_args():
     parser.add_argument('-o', '--output-path', default='Invnet_models',
                         help='path to parent folder to save checkpoints')
     parser.add_argument('-n', '--save-name', default='curvevel_a/fcn_normal_step2_no_warm_up',
-                        help='folder name for this experiment')  # 这里修改保存路径
+                        help='folder name for this experiment') 
     parser.add_argument('-s', '--suffix', type=str, default=None, help='subfolder name for this run')
 
     # Model related
-    parser.add_argument('-m', '--model', type=str, default='Inv_ResNet', help='inverse model name')  # 这里修改模型
+    parser.add_argument('-m', '--model', type=str, default='Inv_ResNet', help='inverse model name')  
     parser.add_argument('-no', '--norm', default='bn',
                         help='normalization layer type, support bn, in, ln (default: bn)')
     parser.add_argument('-um', '--up-mode', default=None,
@@ -276,15 +276,14 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    # suzy 调试用 修改下面的参数就可以测试自己想测试的模型，或者用命令行修改参数也可
 
-    args.dataset = 'SEG'  # 数据类型：-ds flatvel-a flatfault-a curvefault-a curvevel-a  SEG
-    args.save_name = 'FWI_pretrain'  # 测试结果保存位置： -n curvevel_b/preTrained_GAN/L1 curvevel_b\ConvModNet_FWI_step0 FWI_pretrain
-    args.model = 'ConvModNet_SEG'  # 测试的网络类型：-m ConvModNet InversionNet ConvModNet_SEG
-    args.val_anno = 'SEG_val.txt'  # 验证集：-v  curvefault_a_val.txt  flatfault_a_val.txt  flatvel_a_val
-    args.resume = 'model_40.pth'  # 测试的模型：-r curvevel_b_l1_480 checkpoint
-    args.vis_batch = 31  # 可视化多少batch：-vb
-    args.vis_sample = 1  # 每个batch可视化多少张：-vsa
+    args.dataset = 'SEG'  
+    args.save_name = 'FWI_pretrain'  
+    args.model = 'ConvModNet_SEG'  
+    args.val_anno = 'SEG_val.txt'  
+    args.resume = 'model_40.pth' 
+    args.vis_batch = 31  
+    args.vis_sample = 1  
     args.vis = True
     args.batch_size = 32
 
