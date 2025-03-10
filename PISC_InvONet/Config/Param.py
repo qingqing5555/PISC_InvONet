@@ -1,11 +1,5 @@
 import numpy as np
 
-"""
-
-edit: suzy 20231211
-
-"""
-
 # --------------------Forward simulation parameters-----------------------------
 peak_freq = 7.  # Frequency
 peak_source_time = 1 / peak_freq  # Period
