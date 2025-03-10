@@ -151,7 +151,7 @@ def plotinitmodel(init, true, vmin, vmax, SaveFigPath):
 
 def plotinitsource(init, gt, SaveFigPath):
     """
-        打印震源
+      Print focal point
     """
     t = 500
     figsize = (12, 6)
@@ -169,7 +169,7 @@ def plotinitsource(init, gt, SaveFigPath):
 
 def plotsourcespectra(init_source, true_source, SaveFigPath):
     """
-        震源频谱图
+     Seismic source spectrum
     """
     init_source = init_source.astype(np.complex64).reshape(-1)
     true_source = true_source.astype(np.complex64).reshape(-1)
@@ -217,7 +217,7 @@ def plotoneshot(receiver_amplitudes_true, SaveFigPath):
 
 def plotcomparison(gt, pre, ite, SaveFigPath):
     """
-    打印真实模型和反演模型
+  Print the true model and inversion model
     """
 
     dim = gt.shape
