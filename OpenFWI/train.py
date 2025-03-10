@@ -70,7 +70,7 @@ def train_one_epoch(model, criterion, optimizer, lr_scheduler,
     header = 'Epoch: [{}]'.format(epoch)
 
     # # --------------------------
-    # # 正演参数
+    # # Forward modeling parameters
     # dx = 10.0
     # n_shots = 5
     # n_sources_per_shot = 1
@@ -97,7 +97,7 @@ def train_one_epoch(model, criterion, optimizer, lr_scheduler,
     # source_locations[..., 0] = source_depth
     # source_locations[:, 0, 1] = (torch.arange(n_shots) * d_source +
     #                              first_source)
-    # # 接收器
+    # # Receiver
     # receiver_locations = torch.zeros(n_shots, n_receivers_per_shot, 2,
     #                                  dtype=torch.long, device=device)
     # receiver_locations[..., 0] = receiver_depth
@@ -123,7 +123,7 @@ def train_one_epoch(model, criterion, optimizer, lr_scheduler,
         # data_pre_list = []
         # arr_sample = np.arange(16)
         # idx = np.random.choice(arr_sample, 3)
-        # output_sample = output.clone()[idx, :, :, :]  # 采样完成 eg:  x:(3,1,70,70)
+        # output_sample = output.clone()[idx, :, :, :]  # Sampling completed
         # output_sample_denorm = denormalize(output_sample, model_min, model_max, False)  # 3 1 70 70
         #
         # for sample_id in range(3):
@@ -167,8 +167,8 @@ def train_one_epoch(model, criterion, optimizer, lr_scheduler,
     return model
 
 def evaluate(model, dataloader, device, writer):
-    model.eval()  # 将模型设置为评估模式
-    label_tensor, label_pred_tensor = [], []  # 存真实和预测
+    model.eval() 
+    label_tensor, label_pred_tensor = [], [] 
     with torch.no_grad():
         for data, label in dataloader:
             data = data.type(torch.FloatTensor).to(device, non_blocking=True)  # 40 5 1000 700 tensor
