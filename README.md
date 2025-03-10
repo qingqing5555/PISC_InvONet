@@ -116,5 +116,7 @@ pip install pytorch_ssim scikit-learn openfwi
 The trained model and experimental results can be found in the `results/` directory.  
 The model outputs **seismic velocity inversion maps** and **intermediate processing results**.
 
+---
+
 ##**License**
 PISC_InvONet is licensed under the MIT License.
