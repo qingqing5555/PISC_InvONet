@@ -36,7 +36,7 @@ def sobel_mean(data):
     # sobel_mean = math.sqrt(np.dot(sobelx, sobelx) + np.dot(sobely, sobely))/data.size
     return result, GSI
 
-# 导入数据 然后计算即可 SEG simulate openfwi都是代表数据集类型
+# Import data and then calculate. SEG, simulate, openfwi all represent data set types
 # SEG
 data = np.load('F:/suzy/OpenFWI/FWI/SEG/model1.npy')[0][0]
 shannon = shannon_entropy(data)
