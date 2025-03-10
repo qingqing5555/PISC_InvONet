@@ -7,13 +7,8 @@ from Models.Discriminator import *
 from torch import optim
 import time
 
-"""
 
-这个文件是FWIGAN的实现 详情可以去找原文
 
-"""
-
-# 检查cudnn cuda
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 cuda_available = torch.cuda.is_available()
@@ -23,74 +18,74 @@ if cuda_available:
 else:
     print("use cpu")
 
-# ----------------------------加载数据------------------------------
-# 1 速度模型
+# ----------------------------Load data------------------------------
+
 model_true = loadtruemodel(data_path, vmodel_dim).to(device)
 
-# 2 初始模型
+
 init_model_path = ResultPath + str(data_name) + '_initmodel.mat'
 if os.path.exists(init_model_path):
-    print('存在已构建的初始模型，正在加载...')
+    print('There is an already built initial model, loading...')
     model = load_init_model(init_model_path).clone().to(device)
     model.requires_grad = True
-    print(' 真实模型最大波速: ', model_true.max())
-    # 把model设置为可训练的参数 这里model是初始模型的clone
+    print(' Real model maximum wave speed: ', model_true.max())
+    # Set the model parameters as trainable here, where model is a clone of the initial model
     model = torch.nn.Parameter(model)
 else:
-    raise Exception('不存在初始模型数据，请构建...')
+    raise Exception('No initial model data exists, please build...')
 
-# 3 创建包含源和接收器位置的数组
+# Create an array containing source and receiver positions
 x_s, x_r = createSR(num_shots, num_sources_per_shot, num_receivers_per_shot, d_source, first_source, d_receiver,
                         first_receiver, source_depth, receiver_depth, device)
 
-# 4 震源
+# Seismic Source
 init_source_filepath = ResultPath + str(data_name) + '_initsource.mat'
 if os.path.exists(init_source_filepath):
-    print('初始震源已存在,正在加载...')
+    print('Initial earthquake source already exists, loading...')
     source_amplitudes_init, source_amplitudes_true = loadinitsource(init_source_filepath)
     source_amplitudes_init = source_amplitudes_init.to(device)
     source_amplitudes_true = source_amplitudes_true.to(device)
 else:
-    raise Exception('不存在初始震源，请构建...')
+    raise Exception('No initial earthquake source exists, please build...')
 
-# 5 地震数据
-# 如果有噪声
+# Seismic data
+#If there is noise
 if AddNoise == True and noise_var != None:
     if noise_type == 'Gaussian':
         ResultPath = ResultPath + 'AWGN_var' + str(noise_var) + '/'
     noise_filepath = ResultPath + str(data_name) + '_noisercv_amps.mat'
     if os.path.exists(noise_filepath):
-        print('地震数据（noise）已存在,正在加载...')
+        print('Earthquake data (noise) already exists, loading....')
         rcv_amps_true = loadrcv(noise_filepath).to(device)
     else:
-        raise Exception('不存在地震数据（noise），请构建...')
+        raise Exception('No seismic data (noise) exists, please build...')
 else:
-    # 如果无噪声
+    # If there is no noise
     rcv_filepath = ResultPath + str(data_name) + '_rcv_amps.mat'
     if os.path.exists(rcv_filepath):
-        print('地震数据（clean）已存在,正在加载...')
+        print('Earthquake data (clean) already exists, loading...')
         rcv_amps_true = loadrcv(rcv_filepath).to(device)
     else:
-        raise Exception('不存在地震数据（clean），请构建...')
+        raise Exception('No seismic data (clean) exists, please build...')
 
-# ----------------------物理生成器和判别器-----------------------------#
+# ----------------------Physical generator and discriminator-----------------------------#
 PhySimulator = PhySimulator(dx, num_shots, gan_num_batches,
                             x_s, x_r, dt, pml_width,
                             order, peak_freq).to(device)
 
-num_shots_per_batch = int(num_shots / gan_num_batches)  # 每个batch包含的shots数量
+num_shots_per_batch = int(num_shots / gan_num_batches)  # Number of shots per batch
 Filters = np.array([DFilter, 2 * DFilter, 4 * DFilter, 8 * DFilter, 16 * DFilter, 32 * DFilter], dtype=int)
 netD = Discriminator(batch_size=num_shots_per_batch, ImagDim=[nt, num_receivers_per_shot],
                      LReLuRatio=0.1, filters=Filters,
                      leak_value=leak_value)
-# 初始化
+# Initialize
 netD.apply(lambda m: weights_init(m, leak_value))
 netD = netD.to(device)
 optim_d = optim.Adam(netD.parameters(), lr=gan_d_lr, betas=(0.5, 0.9),
                      eps=1e-8, weight_decay=0)
 optim_g = optim.Adam([{'params': model, 'lr': gan_v_lr, 'betas': (0.5, 0.9), 'eps': 1e-8, 'weight_decay': 0}])
 
-# 学习率调节器
+# Learning rate regulator
 if gan_weight_decay > 0:
     scheduler_g = torch.optim.lr_scheduler.StepLR(optim_g,
                                                   step_size=gan_stepsize,
@@ -98,7 +93,7 @@ if gan_weight_decay > 0:
     scheduler_d = torch.optim.lr_scheduler.StepLR(optim_d,
                                                   step_size=gan_stepsize,
                                                   gamma=gan_weight_decay)
-# 如果是噪声数据，学习噪声
+# If it is noise data, learn the noise
 if AddNoise == True and noise_var != None and learnAWGN == True:
     init_snr_guess = np.array(20, dtype="float32")
     gan_noi_lr = 1e-2
@@ -113,11 +108,11 @@ if AddNoise == True and noise_var != None and learnAWGN == True:
 else:
     learn_snr = None
 
-# 计算参数数量
+#Calculate parameter quantity
 s = sum(np.prod(list(p.size())) for p in netD.parameters())
-print('判别器参数数量为: %d' % s)
+print('The number of discriminator parameters is:%d' % s)
 
-# 保存路径
+#Save Path
 gan_result = ResultPath + 'GAN' + '_vlr' + str(gan_v_lr) + '_dlr' + str(gan_d_lr) + '_batch' + str(
     gan_num_batches) + '_epoch' + str(gan_num_epochs) + '_criIte' + str(criticIter)
 
@@ -136,10 +131,10 @@ if not os.path.exists(gan_result):
     os.makedirs(gan_result)
 
 print('*******************************************')
-print('             START GAN                  ')
+print('             START                  ')
 print('*******************************************')
 
-# ----------超参数----------- #
+# ----------Hyperparameters----------- #
 one = torch.tensor(1, dtype=torch.float)
 mone = one * -1
 one = one.to(device)
@@ -166,72 +161,69 @@ def fwi_gan_main():
 
         for it in range(gan_num_batches):
             iteration = epoch * gan_num_batches + it + 1
-            # -------------------判别器训练------------------------ #
-            for p in netD.parameters():  # 每轮重置判别器参数grad设置，训练时为true
-                p.requires_grad_(True)  # 训练生成器的时候是false
+            # -------------------Discriminator training------------------------ #
+            for p in netD.parameters():  # Each round resets the discriminator parameter grad setting, set to true during training
+                p.requires_grad_(True)  # Training the generator is false
             for j in range(criticIter):
                 netD.train()
                 netD.zero_grad()
                 if it * criticIter + j < gan_num_batches:
-                    # 取出真实数据
+                    # Extract real data
                     batch_rcv_amps_true = rcv_amps_true[:, it * criticIter + j::gan_num_batches]
                 else:
                     batch_rcv_amps_true = rcv_amps_true[:, ((it * criticIter + j) % gan_num_batches)::gan_num_batches]
 
-                d_real = batch_rcv_amps_true.detach()  # 别名，真实数据
+                d_real = batch_rcv_amps_true.detach()  # Alias, real data
                 with torch.no_grad():
-                    model_fake = model  # 初始模型
+                    model_fake = model  #Initial Model
                     if AddNoise is True and noise_var is not None and learnAWGN is True:
                         learn_snr_fake = learn_snr.detach()
                     else:
                         learn_snr_fake = None
-                # 模拟得到正演数据
+                # Simulate forward data
                 d_fake = PhySimulator(model_fake,
                                       source_amplitudes_init, it, criticIter, j,
                                       'TD', AddNoise, learn_snr_fake, learnAWGN)
 
-                # 打印
+                # Print
                 if j == criticIter - 1 and iteration % plot_ite == 0:
                     plotfakereal(fakeamp=d_fake[:, 0].cpu().data.numpy(),
                                  realamp=d_real[:, 0].cpu().data.numpy(),
                                  ite=iteration, cite=j + 1, SaveFigPath=gan_result)
 
-                # 真实数据放到判别器得到模型
-                # 改一下维度格式 [nt,num_shots,nnum_receiver] -> [num_shots,nt,num_receiver] 5 2000 310
+                # Real data is fed into the discriminator to obtain the model
                 d_real = d_real.permute(1, 0, 2)
-                # 再改一下[num_shots,1,nt,num_receiver] 5 1 2000 310
                 d_real = d_real.unsqueeze(1)
                 disc_real = netD(d_real)
                 disc_real = disc_real.mean()
 
-                # 模拟数据放到判别器得到模型
+                #Simulated data fed into the discriminator to obtain the model
                 d_fake = d_fake.permute(1, 0, 2)
                 d_fake = d_fake.unsqueeze(1)
                 disc_fake = netD(d_fake)
                 disc_fake = disc_fake.mean()
 
-                # 累计真实和模拟数据的分数
+                # Cumulative score of real and simulated data
                 DiscReal = np.append(DiscReal, disc_real.item())
                 DiscFake = np.append(DiscFake, disc_fake.item())
 
-                # 梯度惩罚
+                # Gradient penalty
                 gradient_penalty = calc_gradient_penalty(netD, d_real, d_fake,
                                                          batch_size=num_shots_per_batch,
                                                          channel=1, lamb=lamb,
                                                          device=device)
-                # 计算总得分
+                #Calculate total score
                 disc_cost = disc_fake - disc_real + gradient_penalty
                 print('Epoch: %03d  Ite: %05d  DLoss: %f' % (epoch + 1, iteration, disc_cost.item()))
 
                 w_dist = -(disc_fake - disc_real)
-                # 累积总得分和 w_dist？
                 DLoss = np.append(DLoss, disc_cost.item())
                 WDist = np.append(WDist, w_dist.item())
 
-                # 根据总得分进行反向传播
+                # Based on total score for backpropagation
                 disc_cost.backward()
 
-                # 梯度裁剪防止梯度爆炸
+                # Gradient Clipping to Prevent Gradient Explosion
                 torch.nn.utils.clip_grad_norm_(netD.parameters(),
                                                1e3)  # 1e3 for smoothed initial model; 1e6 for linear model
 
@@ -242,32 +234,31 @@ def fwi_gan_main():
                 if gan_weight_decay > 0:
                     scheduler_d.step()
 
-                # -----------------可视化---------------#
+                # -----------------Visualization---------------#
                 if j == criticIter - 1 and iteration % plot_ite == 0:
                     PlotDLoss(dloss=DLoss, wdist=WDist,
                               SaveFigPath=gan_result)
 
-                    # ------------模型更新--------------#
+                    # ------------Model update--------------#
             for p in netD.parameters():
-                p.requires_grad_(False)  # 这次把判别器冻结
+                p.requires_grad_(False)  # This time, freeze the discriminator
 
             for k in range(1):
                 optim_g.zero_grad()
                 if AddNoise is True and noise_var is not None and learnAWGN is True:
                     optim_noi.zero_grad()
-                # 生成假的数据
+                #Generate fake data
                 g_fake = PhySimulator(model,
                                       source_amplitudes_init, it, criticIter, j,
                                       'TG', AddNoise, learn_snr, learnAWGN)
 
-                # 改改维度格式
                 g_fake = g_fake.permute(1, 0, 2)
                 g_fake = g_fake.unsqueeze(1)
 
                 if fix_value_depth > 0:
                     fix_model_grad(fix_value_depth, model)
 
-                # 计算生成器loss
+                # Calculator generator loss
                 gen_cost = netD(g_fake)
                 gen_cost = gen_cost.mean()
                 gen_cost.backward(mone)
@@ -275,14 +266,14 @@ def fwi_gan_main():
                 print('Epoch: %03d  Ite: %05d  GLoss: %f' % (epoch + 1, iteration, gen_cost.item()))
                 GLoss = np.append(GLoss, gen_cost.item())
 
-                # 梯度裁剪 超过阈值就进行裁剪
+                # Gradient Clipping: Trim when exceeding the threshold
                 torch.nn.utils.clip_grad_value_(model,
                                                 1e3)  # mar_smal: 1e1 smoothed initial model; 1e3 for linear model
 
                 # optimize
                 optim_g.step()
 
-                # 生成器学习率调整
+                # Adjusting the learning rate of the generator
                 if gan_weight_decay > 0:
                     scheduler_g.step()
 
@@ -294,7 +285,7 @@ def fwi_gan_main():
                     if gan_weight_decay > 0:
                         scheduler_noi.step()
 
-                # clip 保证值大于0
+                # clip ensure the value is greater than 0
                 model.data = torch.clamp(model.data, min=1e-12)
 
                 # compute the SNR, SSIM and realtive error between GT and inverted model
@@ -310,16 +301,16 @@ def fwi_gan_main():
                                    model_true.detach().cpu().numpy())
                 ERROR = np.append(ERROR, rerror)
 
-            # ---------------可视化---------------------#
+            # ---------------Visualization---------------------#
             if iteration % plot_ite == 0:
-                # 输出真实模型和现在的反演结果
+                # Output the real model and the current inversion results
                 plotcomparison(gt=model_true.cpu().data.numpy(),
                                pre=model.cpu().data.numpy(),
                                ite=iteration, SaveFigPath=gan_result)
-                # 输出GLoss
+                #Output GLoss
                 PlotGLoss(gloss=GLoss, SaveFigPath=gan_result)
 
-                # 输出SNR, RSNR, SSIM and ERROR
+                #Output SNR, RSNR, SSIM and ERROR
                 PlotSNR(SNR=SNR, SaveFigPath=gan_result)
                 PlotSSIM(SSIM=SSIM, SaveFigPath=gan_result)
                 PlotERROR(ERROR=ERROR, SaveFigPath=gan_result)
@@ -327,14 +318,14 @@ def fwi_gan_main():
                     print('learned snr:', learn_snr)
 
         if (epoch + 1) % savepoch == 0 or (epoch + 1) == gan_num_epochs:
-            # ------------------保存结果-----------------#
+            # -----------------Save the result-----------------#
             spio.savemat(gan_result + 'GANRec' + '.mat',
                          {'rec': model.cpu().data.numpy()})
             spio.savemat(gan_result + 'GANMetric' + '.mat',
                          {'SNR': SNR, 'SSIM': SSIM, 'ERROR': ERROR,
                           'DLoss': DLoss, 'WDist': WDist, 'GLoss': GLoss})
 
-            # ----------------------保存模型----------------------#####
+            # ----------------------Save model----------------------#####
         if (epoch + 1) % savepoch == 0 or (epoch + 1) == gan_num_epochs:
             if gan_weight_decay > 0:
                 dis_state = {
@@ -358,7 +349,7 @@ def fwi_gan_main():
                 raise NotImplementedError
 
     time_elapsed = time.time() - start_time
-    print('训练总时长 {:.0f}m  {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+    print('Training Total Duration{:.0f}m  {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     # record the consuming time
     np.savetxt(gan_result + 'run_result.txt',
                np.hstack((epoch + 1, time_elapsed // 60, time_elapsed % 60, snr, ssim, rerror)), fmt='%3.4f')
