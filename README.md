@@ -110,11 +110,6 @@ Other dependencies may include:
 ```bash
 pip install pytorch_ssim scikit-learn openfwi
 ```
-Alternatively, you can install all dependencies using:
-```bash
-pip install -r requirements.txt
-```
-
 ---
 
 ## **Results**
