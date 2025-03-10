@@ -8,13 +8,12 @@ from pytorch_msssim import ms_ssim
 
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-# 检查cudnn cuda
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 cuda_available = torch.cuda.is_available()
 device = torch.device("cuda" if cuda_available else "cpu")
 
-# --------------------------设置参数-------------------------------------#
+# --------------------------Set parameters-------------------------------------#
 model_type = 'OPENFWI'
 if model_type == 'SEG':
     vis_path = './OpenFWI/FWI/SEG/'
@@ -83,30 +82,30 @@ else:
     model_max = 4500
 
 
-# --------------------------生成数据---------------------------------------------------------#
+# --------------------------Generate data---------------------------------------------------------#
 def generate_data(data_name, save_path='./open_data/SGEdata/data_', accuracy=4):
     """
-       这个函数可以用来生成自己的地震数据，目前默认一次性处理500个剖面 models维度为【长】【宽】【0】，也可以自己修改
+       This function can be used to generate your own seismic data. Currently, it defaults to processing 500 profiles at a time, with the models dimension set to [Length][Width][0], which can also be modified by yourself
         Args:
-            data_name: 数据名
-            save_path: 保存路径
-            accuracy: 精度 4 or 8
+            data_name
+            save_path
+            accuracy: Accuracy 4 or 8
     """
     my_data = []
     for i in range(0, 500):
-        # 1 加载真实模型数据    3199  0 500 500 1000
+        # 1 Load real model data
         model_true = models[i][0]
         # model_true = model_true[0:-1, 0:-1]   # open:5*1000*70   SEG:30*1000*300
 
-        # 2 震源
+        # 2 Seismic Source
         source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
                                        dtype=torch.long, device=device)
         source_locations[..., 0] = source_depth
         source_locations[:, 0, 1] = (torch.arange(n_shots) * d_source +  # 5 10...295
                                      first_source)
 
-        # 3 地震数据
-        # 接收器
+        # 3 Seismic data
+        # Receiver
         receiver_locations = torch.zeros(n_shots, n_receivers_per_shot, 2,
                                          dtype=torch.long, device=device)
         receiver_locations[..., 0] = receiver_depth
@@ -128,7 +127,7 @@ def generate_data(data_name, save_path='./open_data/SGEdata/data_', accuracy=4):
                                accuracy=accuracy,
                                pml_freq=freq)
         observed_data = observed_data[-1] * (-1)  # 5 70 1000
-        #  添加噪声
+        #  Add noise
         if AddNoise == True and noise_var != None:
             noise = np.random.normal(0, noise_var, observed_data[0].shape)
             data = torch.clip(observed_data[0] + torch.tensor(noise, dtype=torch.float32),
@@ -141,7 +140,7 @@ def generate_data(data_name, save_path='./open_data/SGEdata/data_', accuracy=4):
 
     np.save(save_path + str(data_name), torch.cat(my_data))
     # np.save('F:/suzy/open_data/Simulatedata/data1_' + str(8), torch.cat(my_data))
-    print('数据生成成功~')
+    print('Data generation successful~')
 
 
 # ------------------------normalize func----------------------#
@@ -179,39 +178,39 @@ def denormalize(data, min, max, exp=True, k=1, c=0, scale=2):
     return exp_transform(data, k=k, c=c) if exp else data
 
 
-# ------------------------迭代训练----------------------------------#
+# ------------------------Iterative training----------------------------------#
 def my_train(num=1, model_type='ConvModNet', lr=0.0001,
              checkpoint_path='./FWI/FWI_checkpoint/checkpoint.pth', train_epochs=100,
              plot_num=1):
     """
         Args:
-             num: 想反演的剖面编号
-             model_type：网络模型
-             lr：学习率
-             checkpoint_path：预训练模型 './FWI/FWI_checkpoint/model2/checkpoint_for_1.pth'
-             train_epochs：迭代轮次
-             plot_num：隔一定epoch 输出损失和图像
+             num: Profile number for inversion
+             model_type：Network Model
+             lr：Learning Rate
+             checkpoint_path：Pre-trained model './FWI/FWI_checkpoint/model2/checkpoint_for_1.pth'
+             train_epochs：Iteration Round
+             plot_num：Output: Output the loss and images at regular epochs
     """
     if not os.path.exists(vis_path):
         utils.mkdir(vis_path)
 
-    # 加载真实地震数据和剖面s
+    # Loading real seismic data and profiles
     first = int(num / 16) * 16
     last = first + 16
     invert_num = num % 16 - 1
     true_data = torch.from_numpy(datas[first:last, :]).to(device)  # 16 5 1000 70
     plot_single_seismic(true_data[invert_num][0].cpu().numpy(), vis_path + 'true_seis.jpg')
 
-    true_model = torch.unsqueeze(torch.from_numpy(models[num - 1]).to(device), 0)  # 1 1 70 70
+    true_model = torch.unsqueeze(torch.from_numpy(models[num - 1]).to(device), 0)  
     plot_single_velocity(true_model[0][0].cpu().numpy(), vis_path + 'true_model.jpg')
 
     data_min = torch.min(true_data)
     data_max = torch.max(true_data)
     model_min = torch.min(true_model)
     model_max = torch.max(true_model)
-    true_data_norm = log_minmaxNormalize(true_data, data_min, data_max)  # 16 5 1000 70
-    true_data_criterion = torch.unsqueeze(true_data_norm[invert_num, :], 0)  # 1 5 1000 70 用来作比较的真实地震数据
-    # 加载模型和参数
+    true_data_norm = log_minmaxNormalize(true_data, data_min, data_max)  
+    true_data_criterion = torch.unsqueeze(true_data_norm[invert_num, :], 0)  Real seismic data for comparison
+    # Load model and parameters
     model = network.model_dict[model_type](upsample_mode=None,
                                            sample_spatial=1.0, sample_temporal=1, norm='bn').to(
         device)
@@ -232,14 +231,14 @@ def my_train(num=1, model_type='ConvModNet', lr=0.0001,
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
     model = network.load_dict_to_model(checkpoint['model'], model)
 
-    # 正演参数
-    # 震源
+    # Forward modeling parameters
+    # Seismic Source
     source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
                                    dtype=torch.long, device=device)
     source_locations[..., 0] = source_depth
     source_locations[:, 0, 1] = (torch.arange(n_shots) * d_source +
                                  first_source)
-    # 接收器
+    # Receiver
     receiver_locations = torch.zeros(n_shots, n_receivers_per_shot, 2,
                                      dtype=torch.long, device=device)
     receiver_locations[..., 0] = receiver_depth
@@ -253,7 +252,7 @@ def my_train(num=1, model_type='ConvModNet', lr=0.0001,
         .repeat(n_shots, n_sources_per_shot, 1).to(device)
     )
 
-    # 开始训练
+    # Start training
     print('Start training')
     loss = 0.0
     best_loss = 100
@@ -267,7 +266,7 @@ def my_train(num=1, model_type='ConvModNet', lr=0.0001,
         # else:
         #     pre_model = model(true_data_norm[:, :, 1:1000:2, 1:300:2])  # 16 5 1000 300
         pre_model = model(true_data_norm)  # 16 5 1000 300
-        # 正演计算 然后和true_data求loss
+        # Forward calculation, then calculate loss with true_data
         pre_model_denorm = denormalize(pre_model[invert_num], model_min, model_max, False)  # 1 100 300
         if epoch == 0:
             plot_velocity(pre_model_denorm[0].cpu().detach().numpy(), true_model[0][0].cpu().numpy(),
@@ -280,7 +279,7 @@ def my_train(num=1, model_type='ConvModNet', lr=0.0001,
                                receiver_locations=receiver_locations.to(device),
                                accuracy=4,
                                pml_freq=freq)
-        observed_data = observed_data[-1] * (-1)  # 5 70 1000 这个时候还是有梯度的
+        observed_data = observed_data[-1] * (-1)  
         plot_single_seismic(observed_data[0].cpu().detach().permute(1, 0).numpy(), vis_path + 'pre_seis.jpg')
         pre_data_norm = log_minmaxNormalize(observed_data.permute(0, 2, 1), data_min, data_max)  # 5 1000 70
         # -------------------------
@@ -288,16 +287,16 @@ def my_train(num=1, model_type='ConvModNet', lr=0.0001,
         print("epoch:", epoch)
         print("loss:", loss.item())
         loss.backward()
-        # 裁剪 防止梯度消失 放在backward和step之间
+        #Trimming to prevent gradient vanishing between backward and step
         # torch.nn.utils.clip_grad_value_(model.parameters(), 1)
         optimizer.step()
         model.zero_grad()
 
-        # 隔一定epoch 输出损失和图像
+        # Output: Output the loss and images at regular epochs
         if epoch % plot_num == 0 and epoch > 0:
             plot_velocity(pre_model_denorm[0].cpu().detach().numpy(), true_model[0][0].cpu().detach().numpy(),
                           f'{vis_path}/V_{plot_num}_{epoch}.png')
-        # 保存模型
+        # Save model
         checkpoint = {
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
@@ -313,8 +312,8 @@ def my_train(num=1, model_type='ConvModNet', lr=0.0001,
 
 
 if __name__ == '__main__':
-    # 想生成数据
+    # Generate data
     # generate_data(1)
-    # 想迭代网络模型
+    # Iterative Network Model
     my_train(num=num, model_type='ConvModNet')  # InversionNet ConvModNet
 
