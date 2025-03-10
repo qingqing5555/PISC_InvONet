@@ -23,9 +23,8 @@ class Down_wt(nn.Module):
         return x
 
 
-# 输入 N C H W,  输出 N C H W
 if __name__ == '__main__':
-    block = Down_wt(5, 32, 2)  # 输入通道数，输出通道数
+    block = Down_wt(5, 32, 2)  
     input = torch.rand(16, 5, 1000, 70)
     output = block(input)   # 3 96 64 32
     print(output.size())
