@@ -19,40 +19,40 @@ def loadrcv(rcv_filepath):
 
 def loadtruemodel(data_dir, vmodel_dim):
     """
-        加载真实模型
-        输入：路径  dim【nz，ny】 我这里是100，310
+         Load real model
+        Input: Path dim[nz, ny] Here I have 100, 310
     """
-    # ndarray:31000 原数据是ny nz排列
+    #ndarray:31000 The original data is arranged in ny nz order
     model_true = (np.fromfile(data_dir, np.float32).reshape(vmodel_dim[1], vmodel_dim[0]))
-    # 这里转置一下变成 nz ny 转成torch.tensor
+    #Transpose it to become nz ny, convert to torch.tensor
     model_true = torch.Tensor(np.transpose(model_true, (1, 0)))
     return model_true
 
 
 def load_init_model(init_model_path):
     """
-        加载初始模型
+      Load initial model
     """
     model_mat = spio.loadmat(init_model_path)
-    # 将生成的数组（array）转换为张量Tensor
+    # Convert the generated array (array) to a tensor (Tensor)
     model_init = torch.from_numpy(np.float32(model_mat[str('initmodel')]))
     return model_init
 
 
 def createInitialModel(model_true, gfsigma, lipar, fix_value_depth):
     """
-        对真实模型做处理，构建初始模型 ('line','lineminmax','const','GS')
+       Process the real model to build the initial model ('line', 'lineminmax', 'const', 'GS')
     """
     assert gfsigma in ['line', 'lineminmax', 'constant', 'GS']
-    # gpu上的数组不能直接进行转换类型，要先.cpu，前面model_true牵扯梯度计算，不能.numpy，所以要先.detach
+    # Arrays cannot be directly converted to types on the GPU; they must first be .cpu. The previous model_true is involved in gradient calculations, so it cannot be .numpy., and therefore must be detached first.
     model_true = model_true.cpu().detach().numpy()
     shape = model_true.shape
-    # 是否冻结部分
+    # Is part frozen
     if fix_value_depth > 0:
         const_value = model_true[:fix_value_depth, :]
 
     if gfsigma == 'line':
-        # nz ny 在起始点和结束点间生成等间隔的数值序列
+        #Generate a sequence of evenly spaced values between the starting and ending points
         value = np.linspace(model_true[fix_value_depth, np.int32(shape[1] / 2)],
                             model_true[-1, np.int32(shape[1] / 2)] * lipar, num=shape[0] - fix_value_depth,
                             endpoint=True, dtype=float).reshape(-1, 1)
@@ -85,21 +85,21 @@ def createInitialModel(model_true, gfsigma, lipar, fix_value_depth):
 def createSR(n_shots, n_sources_per_shot, n_receivers_per_shot, d_source, first_source, d_receiver, first_receiver,
              source_depth, receiver_depth, device):
     """
-        包含 源 和 接收器 的数组
-        Args:
-            n_shots: shots 爆炸次数 30
-            n_sources_per_shot: 1
-            n_receivers_per_shot: 接收器数量 310
-            d_source: 震源间隔 注意是网格间隔
-            first_source:
-            d_receiver: 接收器间隔
-            first_receiver:
-            source_depth: 震源深度 0
-            receiver_depth:接收器深度 0
-            device:
-        return:
-            x_s: Source locations [num_shots, num_sources_per_shot, num_dimensions] 第几次shot，震源坐标，几维
-            x_r: Receiver locations [num_shots, num_receivers_per_shot, num_dimensions] 第几次shot，接收器坐标，几维
+      Array containing source and receiver
+    Args:
+    n_shots: shots Explosion times 30
+    n_sources_per_shot: 1
+    n_receivers_per_shot: Number of receivers 310
+    d_source: Source interval, note that it is the grid interval
+    first_source:
+    d_receiver: receiver spacing
+    first_receiver:
+    source_depth: Source Depth 0
+    receiver_depth: receiver depth 0
+    device:
+    return:
+    x_s: Source locations [num_shots, num_sources_per_shot, num_dimensions] Which shot, source coordinates, number of dimensions
+    x_r: Receiver locations [num_shots, num_receivers_per_shot, num_dimensions] Which shot, receiver coordinates, number of dimensions
     """
     source_locations = torch.zeros(n_shots, n_sources_per_shot, 2,
                                    dtype=torch.long, device=device)
@@ -120,7 +120,7 @@ def createSR(n_shots, n_sources_per_shot, n_receivers_per_shot, d_source, first_
 
 def loadinitsource(init_source_file):
     """
-        加载初始震源
+   Load initial source
     """
     source_mat = spio.loadmat(init_source_file)
     source_init = torch.from_numpy(np.float32(source_mat[str('initsource')]))
@@ -133,16 +133,16 @@ def createSourceAmp(peak_freq, nt, dt, peak_source_time, num_shots):
     """
         Create true source amplitudes [nt, num_shots, num_sources_per_shot]
         Args:
-            peak_freq : 震源频率
-            peak_source_time: delay 峰值源时间
-            nt:时长
-            dt: 周期
-            num_shots:爆炸次数
+           peak_freq : peak frequency
+            peak_source_time: delay Peak source time
+            Duration
+            dt: cycle
+            num_shots: number of explosions
         return:
             source_amplitudes
 
     """
-    # 每个shot中的source都有一个ricker子波
+    #Each source in every shot has a Ricker wavelet
     source_amplitudes_true = np.tile(ricker(peak_freq, nt, dt, peak_source_time).reshape(-1, 1, 1),
                                      [1, num_shots, 1])
 
@@ -155,18 +155,18 @@ def createFilterSourceAmp(peak_freq, nt, dt, peak_source_time, num_shots,
     """
         Create source amplitudes with filter function
         Args:
-            peak_freq : 震源频率
-            peak_source_time: delay 峰值源时间
-            nt:时长
-            dt: 周期
-            num_shots:爆炸次数
+          peak_freq : peak frequency
+            peak_source_time: delay Peak source time
+            Duration
+            dt: cycle
+            num_shots: number of explosions
             use_filter:
-            filter_type:highpass','lowpass','bandpass'
+            filter_type: highpass, lowpass, bandpass
             freqmax:
             freqmin:
             corners:
             df:
-        return:返回滤波后的震源
+        return: return the filtered source
     """
 
     source_amplitudes = ricker(peak_freq, nt, dt, peak_source_time)
@@ -298,7 +298,7 @@ def highpass(data, freq, df, corners, zerophase, axis):
 
 def add_noise(receiver_amplitudes, noise_type, noise_var):
     """
-        添加噪声
+     Add noise
     """
     if noise_type == 'Gaussian':
         receiver_amplitudes_noise = AddAWGN(data=receiver_amplitudes.cpu().data,
@@ -308,7 +308,7 @@ def add_noise(receiver_amplitudes, noise_type, noise_var):
 
 def ComputeSNR(rec, target):
     """
-       计算SNR
+      Calculate SNR
     """
     if torch.is_tensor(rec):
         rec = rec.cpu().data.numpy()
@@ -336,7 +336,7 @@ def ComputeSNR(rec, target):
 
 def AddAWGN(data, snr):
     """
-       添加Gaussian noise
+       Add Gaussian noise
     """
     if len(data.size()) != 3:
         assert False, 'Please check the data shape!!!'
@@ -365,9 +365,9 @@ def AddAWGN(data, snr):
 def createdata(model, dx, dt, source_amplitudes, source_locations, receiver_locations,
                order, pml_width, freq):
     """
-        生成地震数据
+       Generate seismic data
     """
-    # 震源从2000，30，1 改成 30，1，2000
+    # Source magnitude changed from 2000, 30, 1 to 30, 1, 2000
     source_amplitudes = source_amplitudes.permute(1, 2, 0)
     out = scalar(model, dx, dt, source_amplitudes=source_amplitudes, source_locations=source_locations,
                  receiver_locations=receiver_locations, accuracy=order, pml_width=pml_width, pml_freq=freq)
