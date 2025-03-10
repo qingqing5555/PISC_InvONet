@@ -64,6 +64,7 @@ Modify the parameter and path settings in the `Config` folder (`param` and `path
 ### **2. Generate Training Data**
 ```bash
 python data_generate.py
+```
 
 ### **3.Run Traditional Full-Waveform Inversion (FWI)**
 ```bash
