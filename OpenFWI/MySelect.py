@@ -21,7 +21,7 @@ import transforms as T
 import pytorch_ssim
 
 
-# 这是用来网格搜索的代码
+# This code is used for grid search
 
 step = 0
 
@@ -71,8 +71,8 @@ def train_one_epoch(model, criterion, optimizer, lr_scheduler,
     return model, lr_scheduler.get_last_lr()[0], loss_total
 
 def evaluate(model, dataloader, device, writer):
-    model.eval()  # 将模型设置为评估模式
-    label_tensor, label_pred_tensor = [], []  # 存真实和预测
+    model.eval()  # Set the model to evaluation mode
+    label_tensor, label_pred_tensor = [], []  # Store true and predicted
     with torch.no_grad():
         for data, label in dataloader:
             data = data.type(torch.FloatTensor).to(device, non_blocking=True)  # 40 5 1000 700 tensor
@@ -102,7 +102,7 @@ def evaluate(model, dataloader, device, writer):
         writer.add_scalar('loss_ssim', my_SSIM.item(), step)
     return my_MAE, my_MSE, my_SSIM
 
-# ---------------------------------函数定义-----------------------------------
+# ---------------------------------Function definition-----------------------------------
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser(description='FCN Training')
@@ -186,7 +186,7 @@ def my_train():
         print('torchvision version: ', torchvision.__version__)
 
         args.output_path = os.path.join(args.output_path, args.save_name, 'model_' + str(config.model) + 'lr_' + str(config.lr) + 'gamma_' + str(config.gamma))
-        utils.mkdir(args.output_path)  # 存储的文件夹
+        utils.mkdir(args.output_path)  # Stored folder
 
         # Set up tensorboard summary writer
         train_writer, val_writer = None, None
