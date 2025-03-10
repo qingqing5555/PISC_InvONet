@@ -1,21 +1,16 @@
 import os
 from Config.Param import *
 
-"""
 
-edit: suzy 20231215
-
-"""
-
-# 设置文件路径
+#Set file path
 # os.chdir("/path/to/directory")
-# 结果存储
+# Result storage
 main_dir = "../results/"
 if not os.path.exists('../results/'):
     os.makedirs('../results/')
 results_dir = main_dir
 
-data_name = 'mar_smal_100_310'  # 这是存储文件名的一部分
+data_name = 'mar_smal_100_310' 
 ResultPath = results_dir + str(data_name) + '_dim' + str(vmodel_dim) + '_pf' + str(peak_freq) + '_dx' + str(
     dx) + '_dt' + \
              str(dt) + '_T' + str(total_t) + '_ns' + str(num_shots) + '_nrps' + str(num_receivers_per_shot) + \
