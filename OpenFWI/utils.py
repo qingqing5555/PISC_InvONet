@@ -371,15 +371,13 @@ def save_on_master(*args, **kwargs):
 
 def init_distributed_mode(args):
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        # 多机多卡的情况 WORLD_SIZE代表使用的机器数，RANK对应第几台机器
-        # 单机多卡的机器，WORLD_SIZE代表有几块GPU，RANK和LOCAL_RANK代表第几块GPU
         args.rank = int(os.environ["RANK"])
         args.world_size = int(os.environ['WORLD_SIZE'])
         args.local_rank = int(os.environ['LOCAL_RANK'])
     elif 'SLURM_PROCID' in os.environ and args.world_size > 1:
         args.rank = int(os.environ['SLURM_PROCID'])
         args.local_rank = args.rank % torch.cuda.device_count()
-    elif hasattr(args, "rank"):  # 判断对象是否包含对应的属性 true
+    elif hasattr(args, "rank"):  
         pass
     else:
         print('Not using distributed mode')
